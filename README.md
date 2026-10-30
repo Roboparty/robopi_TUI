@@ -58,6 +58,37 @@ python3 loader/plugin_executor.py --list --no-save
 
 ## 调用与日志
 
+### 通用任务命令行（robopi-tui 1.1.0 起）
+
+公共入口为 `robopi-tui rpc --protocol 1`，从 stdin 接收一行 JSON-RPC 2.0 请求。支持任务目录/描述、只读参数、任务提交/查询/历史/恢复；TUI 软件版本与通信协议独立。终端插件使用通用 `loader/task_runtime.py`，Studio 是调用者之一。已有 Studio API v1 保留兼容。
+
+完整命令、输入输出、退出码、任务生命周期、兼容矩阵与新增任务步骤见[命令行接口与兼容规范](docs/命令行接口与兼容规范.md)。以下是保留给旧客户端的 API v1 示例。
+
+Studio 通过 ADB 调用固定入口，只传操作名和 UUID，不发送 Python 代码、APT 命令或固件路径。板端采集、版本比较、整条升级/HPM/USB/CAN 流程由 TUI 负责。RP006 和 RP024 终端入口也调用同一持久任务实现；旧 schema v3 执行器仍保留原客户端限制。
+
+```bash
+python3 /opt/roboparty/lib/robopi-tui/loader/studio_api.py capabilities
+python3 /opt/roboparty/lib/robopi-tui/loader/studio_api.py snapshot
+# 主动操作需要 root；先确认共享网络可达、板卡型号和空间充足
+python3 /opt/roboparty/lib/robopi-tui/loader/studio_api.py start pipeline --request-id <唯一UUID>
+python3 /opt/roboparty/lib/robopi-tui/loader/studio_api.py status <同一UUID>
+python3 /opt/roboparty/lib/robopi-tui/loader/studio_api.py active
+```
+
+允许的操作只有 `packages-check`、`apt-upgrade`、`hpm-flash`、`can-check`、`pipeline`。`snapshot` 只读缓存；`packages-check` 只刷新目标源。普通升级执行全系统 `apt-get --with-new-pkgs upgrade`（允许新依赖、禁止移除），结果只比较 base、bms、analyze、addon、TUI 五包。版本来自 `apt.roboparty.com`，由 python3-apt 按 Debian 规则比较；刷新失败不声明最新。
+
+HPM 操作先刷新源并安装 `roboparty-analyze`，从 `dpkg-query -L` 中选唯一的包内 `ethercanfd_*.bin`，调用 `/opt/roboparty/bin/flash_hpm.sh`。脚本成功、正常 USB `1209:2323` 连续出现两次、同一 HPM/gs_usb 的 can0–can3 全部出现才通过；不发 CAN 帧、不做 Flash 字节读回。写操作目前限制已核对的 RoboPi2。
+
+1.1.1 起，四路识别与 CAN 配置分开显示。新增只读配置检查按 RoboPi2 默认值核对 UP、FD、1M/5M、MTU 72、队列 10000 和 ERROR-ACTIVE。DOWN、配置不符或信息不足会在参数中明确标记；`can-check`、`hpm-flash`、`pipeline` 存在配置问题时整体为 `needs_review`，并保留刷写与枚举的独立证据。不会自动修改接口或 base 包规则，通信协议仍为 1。
+
+1.0.3 起，包操作前检查日志空间：`/var/log` 可用不足8MiB时，仅检查 `/var/log/robopi/seven-YYYYMMDD-HHMMSS` 及 `/var/log.hdd/robopi` 的旧会话。必须有已结束记录、至少结束60秒、无进程占用、无符号链接或特殊文件、归档期间内容不变，才先压缩归档到私有 `/var/lib/robopi-tui/legacy-log-archives` 再删除旧目录；磁盘镜像同时处理，避免重启回灌。兼容旧 analyze 追加结束记录导致 manifest JSON 格式错误的已知格式。当前 `/home/robo/robopi-logs`、系统日志、APT日志和配置均不在清理范围。空间充足不清理；无法安全释放到至少2MiB时仍中止升级。实现为 `loader/board_log_cleanup.py`，归档路径和删除清单记入任务结果/事件。
+
+`start` 返回任务身份，`status` 同时返回阶段事件、终态和结果。最终结论检查 `outcome`（pass/fail/needs_review/error），不能仅看进程退出码。任务与日志在私有 `/var/lib/robopi-tui/studio-jobs/<UUID>/`，由 systemd 瞬态服务托管，断开 ADB/关闭 Studio 不会取消板端写入。相同 UUID 去重，冲突任务拒绝；重连只查询，不重放。升级前冻结 loader/plugins 到任务目录，APT 替换 TUI 不会改变本任务实现；下一次 API 调用读取新安装代码。旧任务归档由维护人员保留/清理，当前不自动删历史。
+
+板端重启或进程异常退出会标记 `interrupted` 并锁定新任务。人工检查 `dpkg --audit`、任务日志、USB/CAN 和复位服务后，可用 `studio_api.py acknowledge <UUID>` 确认解除该锁；这个命令不修复系统、不重跑原任务。没有远程强杀升级/烧录接口，Studio 的“停止等待”只解除电脑等待。
+
+实现分工：`loader/task_protocol.py` 管公共协议，`task_catalog.py` 管任务注册，`task_runtime.py` 管持久执行，`studio_api.py` 兼容旧入口；`board_backend.py` 管流程与判定，`board_snapshot.py` 管只读参数，`board_packages.py` 管源和版本。后端与协议测试位于 `loader/tests/test_studio_backend.py`、`test_task_protocol.py`。
+
 ```bash
 sudo robopi-tui
 robopi-tui --version

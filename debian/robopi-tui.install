@@ -6,4 +6,5 @@ plugins/*.py opt/roboparty/lib/robopi-tui/plugins
 plugins/README.md opt/roboparty/share/doc/robopi-tui/plugins
 plugins/STATUS.md opt/roboparty/share/doc/robopi-tui/plugins
 debian/changelog opt/roboparty/share/doc/robopi-tui
+docs/*.md opt/roboparty/share/doc/robopi-tui/docs
 

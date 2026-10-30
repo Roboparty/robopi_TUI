@@ -14,14 +14,14 @@
 | RP003 | 1.0 | Network | 网络接口清单 | testing | test / passive | TUI+C# | 是 | 无 | 记录非 loopback 接口，结果待人工复核。 |
 | RP004 | 1.0 | Network | RoboParty APT 源 | testing | test / passive | TUI+C# | 是 | 无 | 已配置 `apt.roboparty.com`，`common/InRelease` 可访问并有 PGP 签名消息头；不单独验证签名。 |
 | RP005 | 1.0 | System | 已安装 RoboParty 包 | testing | test / passive | TUI+C# | 是 | 无 | 列出 `roboparty-*`、`robopi-*` 包，且包含 `roboparty-base`。 |
-| RP006 | 1.0 | System | APT 更新与升级 | testing | test / active | TUI | 是 | 无 | `apt-get update` 和 `apt-get -y upgrade` 均成功。 |
+| RP006 | 1.1 | System | APT 更新与升级 | testing | test / active | TUI | 是 | 无 | 板端持久任务完成普通升级，并对比 base/bms/analyze/addon/TUI 五个包的源版本与实际版本。 |
 | RP007 | 1.0 | Interfaces | CAN 接口清单 | testing | test / passive | TUI+C# | 是 | 无 | 记录 `canN` 状态，待人工复核；不发送 CAN 帧。 |
 | RP008 | 1.0 | Interfaces | HiPNUC udev 规则 | testing | test / passive | TUI+C# | 是 | 无 | `roboparty-base` 拥有已安装规则，且规则命名 `can_hipnuc`。 |
 | RP009 | 1.0 | Interfaces | HiPNUC CAN 波特率 | testing | test / query | TUI+C# | 是 | RP008 | 主机 `can_hipnuc` 为 1 Mb/s，寄存器 `0x009A` 表示设备也为 1 Mb/s。 |
 | RP010 | 1.0 | Interfaces | HiPNUC 固件版本 | testing | test / query | TUI+C# | 是 | RP009 | 寄存器 `0x0078` 返回非零版本；不比较最低版本。 |
 | RP011 | 1.0 | USB | USB 设备清单 | testing | test / passive | TUI+C# | 是 | 无 | 记录 USB 设备和枚举速率，结果待人工复核。 |
 | RP012 | 1.0 | USB | USB 3.0 扩展坞 | testing | test / passive | TUI+C# | 是 | 无 | 外部 Hub 的设备类或接口类为 `09`，速率至少 5000 Mb/s。 |
-| RP013 | 1.0 | USB | GSUSB USB-CAN 接口 | testing | test / passive | TUI+C# | 是 | RP012 | `1209:2323` 绑定 `gs_usb` 且出现 CAN 网络接口；不验证 CAN 通信。 |
+| RP013 | 1.0 | USB | GSUSB USB-CAN 接口 | testing | test / passive | TUI+C# | 是 | 无 | `1209:2323` 绑定 `gs_usb` 且出现 CAN 网络接口；不验证 CAN 通信。 |
 | RP014 | 1.0 | USB | USB Hub 复位压力测试 | testing | test / active | TUI | 是 | RP012 | 100 次复位后身份恢复、无新增内核错误且每轮成功；会短暂断开 USB。 |
 | RP015 | 1.0 | Interfaces | GPIO 引脚快照 | testing | test / passive | TUI+C# | 是 | 无 | 记录 GPIO 状态，结果待人工复核。 |
 | RP016 | 1.0 | Addon | 灯板就绪状态 | testing | test / passive | TUI+C# | 是 | 无 | WS2812 字符设备与工具齐备仍待人工复核，需要目视确认。 |
@@ -32,7 +32,7 @@
 | RP021 | 1.0 | BMS | BMS 服务与实时数据 | testing | test / passive | TUI+C# | 是 | RP020 | 服务 active/running，最近 30 秒有本次启动的 BMS 数据日志。 |
 | RP022 | 1.0 | BMS | BMS 固件版本 | testing | test / passive | TUI+C# | 是 | RP021 | 按 `BMS_TYPE` 读到非零固件/硬件版本；不比较目标版本。 |
 | RP023 | 1.0 | BMS | BMS 重启与通信 | testing | test / active | TUI | 是 | RP020 | 重启服务成功，10 秒后满足 RP021 的实时数据判据。 |
-| RP024 | 1.0 | Interfaces | HPM EtherCANFD 刷写 | testing | test / active | TUI | 是 | RP001 | 唯一非空打包固件存在且刷写成功；不包含读回或重启验证。 |
+| RP024 | 1.1 | Interfaces | HPM EtherCANFD 刷写 | testing | test / active | TUI | 是 | RP001 | 板端安装 analyze、选择包内固件并刷写，正常 USB 连续两次出现且 HPM 的 can0–can3 全部识别；不验证 Flash 字节或电机通信。 |
 | RP025 | 1.0 | Motor | 单台 LRO 电机参数刷写 | testing | test / active | TUI | 否 | RP001 | 选择并隔离一台电机，逐项读回且 `CAN_TIMEOUT` 不变；不验证断电保持。 |
 | RP026 | 1.0 | Network | 指定接口 Ping | testing | test / query | TUI+C# | 否 | 无 | 选定接口和目标，5 次 Ping；不修改网络。 |
 | RP027 | 1.0 | Interfaces | ADB gadget 状态 | testing | test / passive | TUI+C# | 是 | 无 | 观察 adbd 和 UDC。 |

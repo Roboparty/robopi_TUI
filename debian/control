@@ -8,7 +8,7 @@ Rules-Requires-Root: no
 
 Package: robopi-tui
 Architecture: arm64
-Depends: ${misc:Depends}, python3, dialog, psmisc, usbutils, iproute2,
+Depends: ${misc:Depends}, python3, python3-apt, dialog, psmisc, usbutils, iproute2,
  iputils-ping, procps, systemd,
  adbd, robopi-addon, roboparty-analyze, roboparty-motors, python3-yaml
 Recommends: can-utils, gpiod, adb, roboparty-bms, network-manager,

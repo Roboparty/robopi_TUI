@@ -21,7 +21,7 @@ PLUGIN = {
     'safety': 'passive',
     'category': 'USB',
     'requires': ['usb'],
-    'depends_on': ['RP012'],
+    'depends_on': [],
     'timeout_s': 5,
     'documentation': {
         'title': 'GSUSB USB-CAN 接口',

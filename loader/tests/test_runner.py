@@ -325,40 +325,18 @@ class RunnerTests(unittest.TestCase):
                                                   '/usr/bin/robopi-ws2812')['status'],
                              'needs_review')
 
-    def test_apt_runs_update_then_upgrade_and_stops_on_failure(self):
+    def test_apt_terminal_plugin_uses_shared_durable_backend(self):
         self.assertEqual(APT['PLUGIN'].get('depends_on', []), [])
-        commands = []
-        def run(command, timeout):
-            commands.append(command)
-            return subprocess.CompletedProcess(command, 0, 'done', '')
-        self.assertEqual(APT['probe'](run, is_root=lambda: True)['status'], 'pass')
-        self.assertEqual([command[-1] for command in commands], ['update', 'upgrade'])
-        commands.clear()
-        def fail_update(command, timeout):
-            commands.append(command)
-            return subprocess.CompletedProcess(command, 1, '', 'network failed')
-        self.assertEqual(APT['probe'](fail_update, is_root=lambda: True)['status'], 'fail')
-        self.assertEqual(len(commands), 1)
+        from unittest.mock import patch
+        with patch('loader.task_runtime.run_for_tui', return_value={'status': 'needs_review'}) as shared:
+            self.assertEqual('needs_review', APT['probe']()['status'])
+            shared.assert_called_once_with('apt-upgrade')
 
-    def test_hpm_uses_only_one_packaged_firmware(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            flasher = root / 'flash_hpm.sh'
-            flasher.write_text('#!/bin/sh\n')
-            flasher.chmod(0o755)
-            firmware = root / 'ethercanfd_v1.bin'
-            firmware.write_bytes(b'firmware')
-            calls = []
-            def execute(script, image):
-                calls.append((script, image))
-                return subprocess.CompletedProcess([], 0, 'Done.', '')
-            observed = HPM['probe'](flasher, root, execute, is_root=lambda: True)
-            self.assertEqual(observed['status'], 'pass')
-            self.assertEqual(calls, [(flasher, firmware)])
-            (root / 'ethercanfd_v2.bin').write_bytes(b'firmware')
-            self.assertEqual(HPM['probe'](flasher, root, execute,
-                                          is_root=lambda: True)['status'], 'fail')
-            self.assertEqual(len(calls), 1)
+    def test_hpm_terminal_plugin_uses_shared_durable_backend(self):
+        from unittest.mock import patch
+        with patch('loader.task_runtime.run_for_tui', return_value={'status': 'fail'}) as shared:
+            self.assertEqual('fail', HPM['probe']()['status'])
+            shared.assert_called_once_with('hpm-flash')
 
     def test_one_lro_motor_is_selected_written_and_read_back(self):
         with tempfile.TemporaryDirectory() as temp:

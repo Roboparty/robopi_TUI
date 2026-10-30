@@ -22,8 +22,9 @@ MODULE_DIR = (ROOT if (ROOT / 'plugin_test_menu.py').is_file() else
               else Path('/usr/lib/robopi-tui'))
 sys.path.insert(0, str(MODULE_DIR))
 sys.path.insert(0, str(MODULE_DIR if (MODULE_DIR / 'loader').is_dir() else ROOT.parent))
-from plugin_test_menu import load_catalog, plugin_tests_menu
-from loader.plugin_metadata import manage_plugins
+if len(sys.argv) < 2 or sys.argv[1] != 'rpc':
+    from plugin_test_menu import load_catalog, plugin_tests_menu
+    from loader.plugin_metadata import manage_plugins
 from loader.package_version import package_version
 
 
@@ -99,6 +100,10 @@ def main_menu(ui):
 
 
 def main():
+    # Public machine entry must work without loading interactive menus or plugin metadata.
+    if len(sys.argv) > 1 and sys.argv[1] == 'rpc':
+        from loader.task_protocol import main as rpc_main
+        return rpc_main(sys.argv[2:])
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--list-features', action='store_true',
                         help='print installed plugin names grouped by category')

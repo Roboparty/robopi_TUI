@@ -1,3 +1,45 @@
+robopi-tui (1.1.1) unstable; urgency=medium
+
+  * Report HPM CAN configuration separately from USB/driver discovery.
+  * Surface DOWN, FD, bit timing, MTU, queue and controller state anomalies
+    in snapshots and task results without changing interfaces or base rules.
+
+ -- wentywenty <2321901849@qq.com>  Thu, 29 Oct 2026 23:00:00 +0800
+
+robopi-tui (1.1.0) unstable; urgency=medium
+
+  * Add a stable public CLI with JSON-RPC task discovery and durable jobs.
+  * Separate terminal task execution from the legacy Studio API adapter;
+    preserve API-v1 clients and existing jobs across package updates.
+  * Document protocol compatibility and keep new tasks and parameter rows
+    independent of client software versions.
+
+ -- wentywenty <2321901849@qq.com>  Thu, 29 Oct 2026 09:00:00 +0800
+
+robopi-tui (1.0.4) unstable; urgency=medium
+
+  * Display firmware path, size, checksum and flasher information as named
+    snapshot parameters instead of one generic detail row.
+
+ -- wentywenty <2321901849@qq.com>  Wed, 28 Oct 2026 18:00:00 +0800
+
+robopi-tui (1.0.3) unstable; urgency=medium
+
+  * Before package operations, archive completed legacy analyze sessions
+    from the low-space ramlog and its persistent mirror; keep active,
+    incomplete and changing sessions and all current recorder data.
+
+ -- wentywenty <2321901849@qq.com>  Wed, 28 Oct 2026 17:30:00 +0800
+
+robopi-tui (1.0.2) unstable; urgency=medium
+
+  * Add the versioned Studio API with durable, deduplicated board jobs.
+  * Share APT/HPM operations between terminal plugins and Studio, compare
+    five package versions, and verify normal HPM USB and four CAN interfaces.
+  * Collect board snapshots in TUI and freeze job runtime during self-update.
+
+ -- wentywenty <2321901849@qq.com>  Wed, 28 Oct 2026 15:00:00 +0800
+
 robopi-tui (1.0.1) unstable; urgency=medium
 
   * Remove designated version
