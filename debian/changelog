@@ -1,3 +1,14 @@
+robopi-tui (1.1.6) unstable; urgency=medium
+
+  * Take the shared /dev/shm/roboparty-control.lock for all active (write)
+    plugins, not only apt-upgrade/hpm-flash/pipeline.
+  * Honor ROBOPARTY_CONTROL_LOCK_HELD from a parent process while still
+    rejecting nested same-process acquisitions.
+  * Add RP058 to read the whole-machine software SN from
+    /etc/roboparty/robot-sn and derive a non-secret key identifier.
+
+ -- MsFANRUI <3157422574@qq.com>  Thu, 05 Nov 2026 21:30:00 +0800
+
 robopi-tui (1.1.5) unstable; urgency=medium
 
   * Accept packaged ethercanfd-linux-usb firmware names alongside legacy

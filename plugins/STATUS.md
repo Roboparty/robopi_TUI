@@ -2,10 +2,10 @@
 
 此表由 `python3 loader/generate_plugin_status.py --write` 从各插件的 `PLUGIN` 元数据生成。字段及编写规则见 [README.md](README.md)。
 
-当前 **56 项**；生命周期：`testing` 56 项。
+当前 **57 项**；生命周期：`testing` 57 项。
 全部插件声明适用板卡：`robopi2`, `rdkx5`, `opi5pro`；编写人：`wentywenty`。板卡声明不等于实机验收。
 
-`批量=是` 只表示 `batch=True`；`active` 项在 `--run all` 中仍会跳过，必须指定编号。`TUI+C#` 表示两个客户端均可调用。`通用=是` 表示插件不依赖 RoboPi 专有硬件/路径，可在通用 Linux（x86/amd64）上测试；当前 27 项。
+`批量=是` 只表示 `batch=True`；`active` 项在 `--run all` 中仍会跳过，必须指定编号。`TUI+C#` 表示两个客户端均可调用。`通用=是` 表示插件不依赖 RoboPi 专有硬件/路径，可在通用 Linux（x86/amd64）上测试；当前 28 项。
 
 | 编号 | 版本 | 分类 | 项目 | 生命周期 | 类型 / 安全 | 客户端 | 通用 | 批量 | 前置 | 判据 / 结果边界 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -65,5 +65,6 @@
 | RP054 | 1.0 | System | 根目录 Overlay | testing | action / active | TUI | 是 | 否 | 无 | 使用 overlayroot.local.conf，重建 initramfs 后需重启。 |
 | RP055 | 1.0 | System | 启动分区写保护 | testing | action / active | TUI | 否 | 否 | 无 | 修改现有 fstab 挂载选项，重启后生效。 |
 | RP056 | 1.0 | Motor | 电机错误快照 | testing | test / query | TUI+C# | 否 | 否 | RP007 | 逐台读取反馈错误码与状态；无反馈标记 needs_review；不使能、不发送 CAN 帧。 |
+| RP058 | 1.0 | System | 整机软件 SN | testing | test / passive | TUI+C# | 是 | 否 | 无 | 读取二维码/标签写入的 /etc/roboparty/robot-sn（至少 16 字符），派生 key_id 但不输出密钥；SN 缺失或过短时 needs_review。 |
 
 生命周期描述的是插件验收状态，不是单次运行结果。`testing` 不会因一次 `pass` 自动变成 `official`；`deprecated` 可列出但不能执行。需要人工判断的项目返回 `needs_review`，不等于通过。现有项目尚未完成所有声明板卡的实机验收。

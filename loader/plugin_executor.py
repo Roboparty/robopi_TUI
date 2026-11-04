@@ -5,6 +5,7 @@
 """Schedule package-owned plugins and emit versioned JSON reports."""
 
 import argparse
+from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
@@ -28,6 +29,7 @@ from loader.board_snapshot import identity as board_identity
 from loader.plugin_catalog import (CLIENTS, PLUGIN_DIR, SCHEMA_VERSION, available,
                                    catalog, execution_order, has_capability, load_plugins)
 from loader.package_version import package_version
+from loader.task_runtime import JobError, control_lock
 
 logger = logging.getLogger(__name__)
 
@@ -175,6 +177,14 @@ def redact(value, secrets):
     return value
 
 
+@contextmanager
+def _write_lock(timeout=2.0):
+    """Take the shared control lock for active (write) plugins."""
+    with control_lock(timeout=timeout):
+        yield
+
+
+
 def run_plugin(plugin, directory=PLUGIN_DIR, checker=has_capability, allow_active=False,
                blocked=None, addon_mode=None, params=None):
     started = now()
@@ -214,7 +224,11 @@ def run_plugin(plugin, directory=PLUGIN_DIR, checker=has_capability, allow_activ
                     input_data = encoded
                 else:
                     command.extend(['--params', encoded])
-            process = execute_plugin(command, plugin['timeout_s'], input_data)
+            if plugin['safety'] == 'active':
+                with _write_lock():
+                    process = execute_plugin(command, plugin['timeout_s'], input_data)
+            else:
+                process = execute_plugin(command, plugin['timeout_s'], input_data)
             exit_code = process.returncode
             captured_at = now()
             if process.stdout:
@@ -248,7 +262,7 @@ def run_plugin(plugin, directory=PLUGIN_DIR, checker=has_capability, allow_activ
                     logs.append({'timestamp': captured_at, 'source': source,
                                  'message': output.decode(errors='replace')
                                  if isinstance(output, bytes) else output})
-        except (OSError, ValueError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, json.JSONDecodeError, JobError) as exc:
             status, message = 'error', str(exc)
             value, unit, details = None, None, {}
         if status == 'error':

@@ -92,8 +92,20 @@ def lock(root, name):
 
 @contextmanager
 def control_lock(timeout=2.0):
-    """Serialize maintenance jobs with inference/start/flashing."""
+    """Serialize maintenance jobs with inference/start/flashing.
+
+    A child process that inherited the lock marker from a parent (for example
+    the plugin runner executing an active plugin) does not re-acquire it. A
+    nested call in the same process still tries and is rejected.
+    """
     import fcntl
+    inherited = (
+        os.environ.get('ROBOPARTY_CONTROL_LOCK_HELD') == '1'
+        and os.environ.get('ROBOPARTY_CONTROL_LOCK_PID') != str(os.getpid())
+    )
+    if inherited:
+        yield
+        return
     fd = os.open(CONTROL_LOCK, os.O_RDWR | os.O_CREAT, 0o666)
     acquired = False
     try:
@@ -108,10 +120,12 @@ def control_lock(timeout=2.0):
                     raise JobError('ROBOT_BUSY', '机器人正被运控或其他维护任务占用')
                 time.sleep(0.1)
         os.environ['ROBOPARTY_CONTROL_LOCK_HELD'] = '1'
+        os.environ['ROBOPARTY_CONTROL_LOCK_PID'] = str(os.getpid())
         try:
             yield
         finally:
             os.environ.pop('ROBOPARTY_CONTROL_LOCK_HELD', None)
+            os.environ.pop('ROBOPARTY_CONTROL_LOCK_PID', None)
     finally:
         if acquired:
             fcntl.flock(fd, fcntl.LOCK_UN)

@@ -86,7 +86,7 @@ class RunnerTests(unittest.TestCase):
 
     def test_installed_plugin_catalog(self):
         plugins = RUNNER['load_plugins'](ROOT / 'plugins')
-        self.assertEqual(len(plugins), 56)
+        self.assertEqual(len(plugins), 57)
         self.assertEqual({plugin['safety'] for plugin in plugins},
                          {'passive', 'query', 'active'})
         self.assertEqual({tuple(plugin['station']) for plugin in plugins},
@@ -96,7 +96,7 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual({plugin['author'] for plugin in plugins}, {'wentywenty'})
         self.assertEqual({plugin['lifecycle'] for plugin in plugins}, {'testing'})
         self.assertEqual([plugin['id'] for plugin in plugins],
-                         [f'RP{number:03}' for number in range(1, 57)])
+                         [f'RP{number:03}' for number in range(1, 57)] + ['RP058'])
         self.assertEqual(RUNNER['catalog'](plugins)['tests'][-1]['batch'], False)
 
     def test_declared_inputs_and_nonbatch_plugins(self):
