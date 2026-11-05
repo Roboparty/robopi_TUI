@@ -29,7 +29,7 @@
 | RP018 | 1.0 | Addon | Addon LED 目视测试 | testing | test / active | TUI | 否 | 否 | RP017 | 点灯工具成功后仍需目视确认。 |
 | RP019 | 1.0 | Addon | Addon SIG 双输出测试 | testing | test / active | TUI | 否 | 是 | 无 | 15 秒内检测到 SIG 上升沿后仍需确认物理输出。 |
 | RP020 | 1.0 | BMS | BMS 端口就绪 | testing | test / passive | TUI+C# | 否 | 是 | 无 | BMS 类型与端口已配置，相应 CAN 接口或串口存在；不证明通信。 |
-| RP021 | 1.0 | BMS | BMS 服务与实时数据 | testing | test / passive | TUI+C# | 否 | 是 | RP020 | 服务 active/running，最近 30 秒有本次启动的 BMS 数据日志。 |
+| RP021 | 1.1 | BMS | BMS 服务与实时数据 | testing | test / passive | TUI+C# | 否 | 是 | RP020 | 服务正常运行且未重启，本次检测的 5 秒观察期内有新 BMS 数据且无读取失败或断开；历史数据不计入。 |
 | RP022 | 1.0 | BMS | BMS 固件版本 | testing | test / passive | TUI+C# | 否 | 是 | RP021 | 按 `BMS_TYPE` 读到非零固件/硬件版本；不比较目标版本。 |
 | RP023 | 1.0 | BMS | BMS 重启与通信 | testing | test / active | TUI | 否 | 是 | RP020 | 重启服务成功，10 秒后满足 RP021 的实时数据判据。 |
 | RP024 | 1.1 | Interfaces | HPM EtherCANFD 刷写 | testing | test / active | TUI | 否 | 是 | RP001 | 板端安装 analyze、选择包内固件并刷写，正常 USB 连续两次出现且 HPM 的 can0–can3 全部识别；不验证 Flash 字节或电机通信。 |

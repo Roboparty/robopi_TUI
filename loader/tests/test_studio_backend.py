@@ -62,17 +62,40 @@ class BackendTests(unittest.TestCase):
             backend.wait_usb(lambda: [self.usb(), dict(vid='34b7', pid='0008')], lambda _: None, 3)
 
     def test_selects_only_firmware_owned_by_the_installed_package(self):
+        for name in ('ethercanfd_v1.1.0-20260914.bin',
+                     'ethercanfd-linux-usb_v1.2.0-20261028.bin'):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp).resolve()
+                correct = root / name
+                stale = root / 'ethercanfd_old.bin'
+                correct.write_bytes(b'packaged')
+                stale.write_bytes(b'stale')
+                self.assertEqual(correct, backend.select_firmware([str(correct)], root))
+                self.assertEqual(correct, backend.select_firmware([str(correct)] * 2, root))
+                with self.assertRaises(RuntimeError):
+                    backend.select_firmware([str(correct), str(stale)], root)
+                with self.assertRaises(RuntimeError):
+                    backend.select_firmware([str(root.parent / name)], root)
+
+    def test_rejects_multiple_packaged_firmware_variants(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp).resolve()
-            correct = root / 'ethercanfd_v1.1.0-20260914.bin'
-            stale = root / 'ethercanfd_old.bin'
-            correct.write_bytes(b'packaged')
-            stale.write_bytes(b'stale')
-            self.assertEqual(correct, backend.select_firmware([str(correct)], root))
+            paths = [root / 'ethercanfd_v1.1.0-20260914.bin',
+                     root / 'ethercanfd-linux-usb_v1.2.0-20261028.bin']
+            for path in paths:
+                path.write_bytes(b'packaged')
             with self.assertRaises(RuntimeError):
-                backend.select_firmware([str(correct), str(stale)], root)
-            with self.assertRaises(RuntimeError):
-                backend.select_firmware([str(root.parent / 'ethercanfd_outside.bin')], root)
+                backend.select_firmware([str(path) for path in paths], root)
+
+    def test_rejects_unsupported_firmware_names(self):
+        for name in ('ethercanfd-linux-ethercat_v1.2.0.bin', 'ethercanfd2_v1.2.0.bin',
+                     'ethercanfd-linux-usb_.bin', 'ethercanfd-linux-usb_v1.2.0.bin.bak'):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp).resolve()
+                path = root / name
+                path.write_bytes(b'packaged')
+                with self.assertRaises(RuntimeError):
+                    backend.select_firmware([str(path)], root)
 
     def test_upgrade_stops_on_source_failure_without_installing(self):
         commands = []

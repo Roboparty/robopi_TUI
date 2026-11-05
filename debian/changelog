@@ -1,3 +1,17 @@
+robopi-tui (1.1.5) unstable; urgency=medium
+
+  * Accept packaged ethercanfd-linux-usb firmware names alongside legacy
+    ethercanfd names when selecting the HPM image for flashing.
+  * Retain package ownership, unique-image and file validation checks;
+    cover both naming formats and ambiguous selections in regression tests.
+
+ -- MsFANRUI <3157422574@qq.com>  Thu, 05 Nov 2026 20:56:00 +0800
+
+robopi-tui (1.1.4) unstable; urgency=medium
+
+  * BMS: The fix will observe 5 seconds starting from the end of the log 
+
+ -- MsFANRUI <3157422574@qq.com>  Wed, 04 Nov 2026 16:20:00 +0800
 robopi-tui (1.1.3+rp025.1) unstable; urgency=medium
 
   * Deploy motion-team LRO parameters on can0-can3 with robot configuration

@@ -126,7 +126,7 @@ def select_firmware(paths, directory=FIRMWARE_DIR):
     candidates = []
     for value in paths:
         path = Path(value)
-        if path.parent != directory or not re.fullmatch(r'ethercanfd_[A-Za-z0-9_.-]+\.bin', path.name):
+        if path.parent != directory or not re.fullmatch(r'ethercanfd(?:-linux-usb)?_[A-Za-z0-9_.-]+\.bin', path.name):
             continue
         if path.is_symlink() or path.resolve().parent != directory:
             raise RuntimeError('固件路径是符号链接或越出允许目录')

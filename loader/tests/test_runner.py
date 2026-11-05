@@ -188,10 +188,14 @@ class RunnerTests(unittest.TestCase):
         invocations = []
         def logs(invocation):
             invocations.append(invocation)
-            return '[BMS Data] Voltage: 48V\n'
-        self.assertEqual(BMS_SERVICE['probe'](lambda: fields, logs)['status'], 'pass')
+            return json.dumps({'MESSAGE': '[BMS Data] Voltage: 48V',
+                               '_SYSTEMD_INVOCATION_ID': invocation,
+                               '__MONOTONIC_TIMESTAMP': '2000',
+                               '__REALTIME_TIMESTAMP': '1793878811435992'})
+        clock = iter([1_000_000, 6_000_000]).__next__
+        self.assertEqual(BMS_SERVICE['probe'](lambda: fields, logs, clock)['status'], 'pass')
         self.assertEqual(invocations, ['a' * 32])
-        self.assertEqual(BMS_SERVICE['probe'](lambda: fields, lambda _: 'Connected to BMS')
+        self.assertEqual(BMS_SERVICE['probe'](lambda: fields, lambda _: '')
                          ['status'], 'fail')
         self.assertEqual(BMS_SERVICE['probe'](lambda: {**fields, 'ExecMainStatus': '1'}, logs)
                          ['status'], 'fail')
