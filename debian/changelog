@@ -1,3 +1,12 @@
+robopi-tui (1.1.7) unstable; urgency=medium
+
+  * Add RP059 product identity initialization for factory provisioning.
+  * Write /etc/roboparty/product.json and /boot/config/product.json with
+    a one-time factory_id; require force to replace an existing identity.
+  * Do not pull the RK3588-only robopi-addon automatically.
+
+ -- wentywenty <2321901849@qq.com>  Fri, 06 Nov 2026 20:00:00 +0800
+
 robopi-tui (1.1.6) unstable; urgency=medium
 
   * Take the shared /dev/shm/roboparty-control.lock for all active (write)

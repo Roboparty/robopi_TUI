@@ -53,7 +53,7 @@ class MotorDeploymentTests(unittest.TestCase):
             check = check or Mock()
             result = PLUGIN['probe'](path, journal_dir=root / 'logs', run=mock_run,
                                      check=check, which=which or (lambda name: name),
-                                     is_root=lambda: True, lock=lock)
+                                     is_root=lambda: True, lock=lock, board='robopi2')
             if mock_run.called and 'log' in result['details']:
                 self.assertTrue(Path(result['details']['log']).is_file())
             return result, mock_run, check, seen
@@ -206,7 +206,7 @@ class MotorDeploymentTests(unittest.TestCase):
             roots = [Path(temp) / 'one', Path(temp) / 'two']
             run = Mock()
             result = PLUGIN['probe'](robot='24 自由度 (rp1_24dof)', roots=roots,
-                                     is_root=lambda: True, run=run)
+                                     is_root=lambda: True, run=run, board='robopi2')
             self.assertEqual(result['status'], 'error')
             self.assertIn('未找到', result['message'])
             for root in roots:
@@ -214,7 +214,7 @@ class MotorDeploymentTests(unittest.TestCase):
                 path.parent.mkdir(parents=True)
                 path.write_text('motors: {}', encoding='utf-8')
             result = PLUGIN['probe'](robot='24 自由度 (rp1_24dof)', roots=roots,
-                                     is_root=lambda: True, run=run)
+                                     is_root=lambda: True, run=run, board='robopi2')
             self.assertEqual(result['status'], 'error')
             self.assertIn('多份配置', result['message'])
             run.assert_not_called()

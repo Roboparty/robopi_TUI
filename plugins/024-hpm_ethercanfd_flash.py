@@ -6,10 +6,13 @@
 
 import json
 
+from loader.board_context import board_id
+from loader.plugin_helpers import result
+
 
 PLUGIN = {
     'id': 'RP024',
-    'station': ['robopi2', 'rdkx5', 'opi5pro'],
+    'station': ['robopi2'],
     'clients': ['tui'],
     'author': 'wentywenty',
     'name': 'Flash HPM EtherCANFD',
@@ -28,7 +31,10 @@ PLUGIN = {
 }
 
 
-def probe():
+def probe(board=None):
+    board = board_id()[0] if board is None else board
+    if board != 'robopi2':
+        return result('skip', 'HPM EtherCANFD flashing is only enabled on RoboPi2')
     from loader.task_runtime import run_for_tui
     return run_for_tui('hpm-flash')
 

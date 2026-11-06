@@ -10,6 +10,7 @@ import struct
 import subprocess
 import time
 
+from loader.board_context import has_can_interface
 from loader.plugin_helpers import result
 
 
@@ -114,7 +115,11 @@ def host_bitrate():
     return (links[0].get('linkinfo') or {}).get('info_data', {}).get('bittiming', {}).get('bitrate')
 
 
-def probe(query=hipnuc_query_register, host=host_bitrate):
+def probe(query=hipnuc_query_register, host=host_bitrate, present=None):
+    present = has_can_interface(HIPNUC_INTERFACE) if present is None else present
+    present = present() if callable(present) else present
+    if not present:
+        return result('skip', f'{HIPNUC_INTERFACE} is not present; HiPNUC is not connected')
     try:
         host_rate = host()
         if host_rate != EXPECTED_BITRATE:

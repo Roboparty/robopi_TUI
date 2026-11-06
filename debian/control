@@ -10,7 +10,7 @@ Package: robopi-tui
 Architecture: all
 Depends: ${misc:Depends}, python3, python3-apt, dialog, psmisc, usbutils, iproute2,
  iputils-ping, procps, systemd, python3-yaml
-Recommends: adbd, robopi-addon, roboparty-analyze, roboparty-motors,
+Recommends: adbd, roboparty-analyze, roboparty-motors,
  can-utils, gpiod, adb, roboparty-bms, network-manager,
  sudo, locales, overlayroot, initramfs-tools
 Description: RoboPi board configuration and diagnostics terminal UI

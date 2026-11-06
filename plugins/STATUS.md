@@ -2,15 +2,15 @@
 
 此表由 `python3 loader/generate_plugin_status.py --write` 从各插件的 `PLUGIN` 元数据生成。字段及编写规则见 [README.md](README.md)。
 
-当前 **57 项**；生命周期：`testing` 57 项。
-全部插件声明适用板卡：`robopi2`, `rdkx5`, `opi5pro`；编写人：`wentywenty`。板卡声明不等于实机验收。
+当前 **58 项**；生命周期：`testing` 58 项。
+各插件的板卡与编写人以各自 `PLUGIN` 字段为准。
 
-`批量=是` 只表示 `batch=True`；`active` 项在 `--run all` 中仍会跳过，必须指定编号。`TUI+C#` 表示两个客户端均可调用。`通用=是` 表示插件不依赖 RoboPi 专有硬件/路径，可在通用 Linux（x86/amd64）上测试；当前 28 项。
+`批量=是` 只表示 `batch=True`；`active` 项在 `--run all` 中仍会跳过，必须指定编号。`TUI+C#` 表示两个客户端均可调用。`通用=是` 表示插件不依赖 RoboPi 专有硬件/路径，可在通用 Linux（x86/amd64）上测试；当前 29 项。
 
 | 编号 | 版本 | 分类 | 项目 | 生命周期 | 类型 / 安全 | 客户端 | 通用 | 批量 | 前置 | 判据 / 结果边界 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | RP001 | 1.0 | System | 板卡温度 | testing | test / passive | TUI+C# | 是 | 是 | 无 | 最高可读温区低于 90°C；无可读温区则跳过。 |
-| RP002 | 1.0 | System | 镜像出厂身份 | testing | test / passive | TUI+C# | 否 | 是 | 无 | `/etc/armbian-image-release` 的 8 个字段匹配出厂快照；不是 OTA 当前版本。 |
+| RP002 | 1.1 | System | 镜像出厂身份 | testing | test / passive | TUI+C# | 否 | 是 | 无 | 动态核对 `/etc/armbian-image-release`：BOARD 与实板一致、VENDOR 为 roboparty-os、VERSION=REVISION、KERNEL_TARGET 含当前内核变体、commit/UUID 合法；若存在 `/etc/roboparty/factory-image.json` 则逐字段对照。 |
 | RP003 | 1.0 | Network | 网络接口清单 | testing | test / passive | TUI+C# | 是 | 是 | 无 | 记录非 loopback 接口，结果待人工复核。 |
 | RP004 | 1.0 | Network | RoboParty APT 源 | testing | test / passive | TUI+C# | 是 | 是 | 无 | 已配置 `apt.roboparty.com`，`common/InRelease` 可访问并有 PGP 签名消息头；不单独验证签名。 |
 | RP005 | 1.0 | System | 已安装 RoboParty 包 | testing | test / passive | TUI+C# | 是 | 是 | 无 | 列出 `roboparty-*`、`robopi-*` 包，且包含 `roboparty-base`。 |
@@ -21,11 +21,11 @@
 | RP010 | 1.0 | Interfaces | HiPNUC 固件版本 | testing | test / query | TUI+C# | 否 | 是 | RP009 | 寄存器 `0x0078` 返回非零版本；不比较最低版本。 |
 | RP011 | 1.0 | USB | USB 设备清单 | testing | test / passive | TUI+C# | 是 | 是 | 无 | 记录 USB 设备和枚举速率，结果待人工复核。 |
 | RP012 | 1.0 | USB | USB 3.0 扩展坞 | testing | test / passive | TUI+C# | 否 | 是 | 无 | 外部 Hub 的设备类或接口类为 `09`，速率至少 5000 Mb/s。 |
-| RP013 | 1.1 | USB | GSUSB USB-CAN 接口 | testing | test / passive | TUI+C# | 否 | 是 | 无 | `1209:2323` 绑定 `gs_usb` 且出现 CAN 网络接口；不验证 CAN 通信。 |
+| RP013 | 1.2 | USB | GSUSB USB-CAN 接口 | testing | test / passive | TUI+C# | 否 | 是 | 无 | 任一 USB 设备绑定 `gs_usb` 且出现 CAN 网络接口；不绑定具体 VID/PID，不验证 CAN 通信。 |
 | RP014 | 1.0 | USB | USB Hub 复位压力测试 | testing | test / active | TUI | 否 | 是 | RP012 | 100 次复位后身份恢复、无新增内核错误且每轮成功；会短暂断开 USB。 |
 | RP015 | 1.0 | Interfaces | GPIO 引脚快照 | testing | test / passive | TUI+C# | 否 | 是 | 无 | 记录 GPIO 状态，结果待人工复核。 |
 | RP016 | 1.0 | Addon | 灯板就绪状态 | testing | test / passive | TUI+C# | 否 | 是 | 无 | WS2812 字符设备与工具齐备仍待人工复核，需要目视确认。 |
-| RP017 | 1.0 | Addon | RoboPi Addon 就绪状态 | testing | test / passive | TUI+C# | 否 | 是 | 无 | `robopi-addon`、WS2812 设备/工具、`gpiochip0` 和 `gpiochip1` 均存在。 |
+| RP017 | 1.1 | Addon | RoboPi Addon 就绪状态 | testing | test / passive | TUI+C# | 否 | 是 | 无 | `robopi-addon`、WS2812 设备/工具、`gpiochip0` 和 `gpiochip1` 均存在。 |
 | RP018 | 1.0 | Addon | Addon LED 目视测试 | testing | test / active | TUI | 否 | 否 | RP017 | 点灯工具成功后仍需目视确认。 |
 | RP019 | 1.0 | Addon | Addon SIG 双输出测试 | testing | test / active | TUI | 否 | 是 | 无 | 15 秒内检测到 SIG 上升沿后仍需确认物理输出。 |
 | RP020 | 1.0 | BMS | BMS 端口就绪 | testing | test / passive | TUI+C# | 否 | 是 | 无 | BMS 类型与端口已配置，相应 CAN 接口或串口存在；不证明通信。 |
@@ -35,7 +35,7 @@
 | RP024 | 1.1 | Interfaces | HPM EtherCANFD 刷写 | testing | test / active | TUI | 否 | 是 | RP001 | 板端安装 analyze、选择包内固件并刷写，正常 USB 连续两次出现且 HPM 的 can0–can3 全部识别；不验证 Flash 字节或电机通信。 |
 | RP025 | 2.2 | Motor | can0-can3 LRO 电机参数批量写入 | testing | test / active | TUI | 否 | 否 | RP001 | 按实际 robot.yaml 调用运控脚本并行写入 can0-can3 上的 LRO 电机并读回；包含 CAN_TIMEOUT=0 与 Pn 参数，成功后需电机重新上下电。 |
 | RP026 | 1.0 | Network | 指定接口 Ping | testing | test / query | TUI+C# | 是 | 否 | 无 | 选定接口和目标，5 次 Ping；不修改网络。 |
-| RP027 | 1.0 | Interfaces | ADB gadget 状态 | testing | test / passive | TUI+C# | 否 | 是 | 无 | 观察 adbd 和 UDC。 |
+| RP027 | 1.1 | Interfaces | ADB gadget 状态 | testing | test / passive | TUI+C# | 否 | 是 | 无 | adbd 已安装并运行、UDC 已 configured；adbd 未安装时跳过。 |
 | RP028 | 1.0 | Interfaces | ADB gadget 控制 | testing | action / active | TUI | 否 | 否 | 无 | 明确选择启停；可能断开 ADB。 |
 | RP029 | 1.0 | Serial | 串口清单 | testing | test / passive | TUI+C# | 是 | 是 | 无 | 仅列设备节点，不打开串口。 |
 | RP030 | 1.0 | Serial | 串口 getty | testing | action / active | TUI | 否 | 否 | 无 | 明确选择端口和启停。 |
@@ -66,5 +66,6 @@
 | RP055 | 1.0 | System | 启动分区写保护 | testing | action / active | TUI | 否 | 否 | 无 | 修改现有 fstab 挂载选项，重启后生效。 |
 | RP056 | 1.0 | Motor | 电机错误快照 | testing | test / query | TUI+C# | 否 | 否 | RP007 | 逐台读取反馈错误码与状态；无反馈标记 needs_review；不使能、不发送 CAN 帧。 |
 | RP058 | 1.0 | System | 整机软件 SN | testing | test / passive | TUI+C# | 是 | 否 | 无 | 读取二维码/标签写入的 /etc/roboparty/robot-sn（至少 16 字符），派生 key_id 但不输出密钥；SN 缺失或过短时 needs_review。 |
+| RP059 | 1.0 | System | 产品身份初始化 | testing | action / active | TUI | 是 | 否 | 无 | 读取板卡，校验产品与板卡兼容，生成一次性 factory_id，写 /etc/roboparty/product.json 和 /boot/config/product.json；已有身份默认拒绝覆盖。 |
 
 生命周期描述的是插件验收状态，不是单次运行结果。`testing` 不会因一次 `pass` 自动变成 `official`；`deprecated` 可列出但不能执行。需要人工判断的项目返回 `needs_review`，不等于通过。现有项目尚未完成所有声明板卡的实机验收。

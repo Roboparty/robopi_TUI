@@ -12,6 +12,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -43,6 +44,7 @@ BMS_SERVICE = runpy.run_path(str(ROOT / 'plugins' / '021-bms_service.py'))
 ADDON_STATUS = runpy.run_path(str(ROOT / 'plugins' / '017-addon_readiness.py'))
 ADDON_LED = runpy.run_path(str(ROOT / 'plugins' / '018-addon_led_visual.py'))
 ADDON_SIG = runpy.run_path(str(ROOT / 'plugins' / '019-addon_sig_outputs.py'))
+ADB = runpy.run_path(str(ROOT / 'plugins' / '027-adb_gadget_status.py'))
 USB_STRESS = runpy.run_path(str(ROOT / 'plugins' / '014-usb_hub_reset_stress.py'))
 BMS_RESTART = runpy.run_path(str(ROOT / 'plugins' / '023-bms_restart.py'))
 APP = runpy.run_path(str(ROOT / 'TUI' / 'robopi-tui'))
@@ -86,17 +88,17 @@ class RunnerTests(unittest.TestCase):
 
     def test_installed_plugin_catalog(self):
         plugins = RUNNER['load_plugins'](ROOT / 'plugins')
-        self.assertEqual(len(plugins), 57)
+        self.assertEqual(len(plugins), 58)
         self.assertEqual({plugin['safety'] for plugin in plugins},
                          {'passive', 'query', 'active'})
         self.assertEqual({tuple(plugin['station']) for plugin in plugins},
-                         {('robopi2', 'rdkx5', 'opi5pro')})
+                         {('robopi2', 'rdkx5', 'opi5pro'), ('robopi2',)})
         self.assertEqual({tuple(plugin['clients']) for plugin in plugins},
                          {('tui',), ('tui', 'csharp')})
         self.assertEqual({plugin['author'] for plugin in plugins}, {'wentywenty'})
         self.assertEqual({plugin['lifecycle'] for plugin in plugins}, {'testing'})
         self.assertEqual([plugin['id'] for plugin in plugins],
-                         [f'RP{number:03}' for number in range(1, 57)] + ['RP058'])
+                         [f'RP{number:03}' for number in range(1, 57)] + ['RP058', 'RP059'])
         self.assertEqual(RUNNER['catalog'](plugins)['tests'][-1]['batch'], False)
 
     def test_declared_inputs_and_nonbatch_plugins(self):
@@ -224,6 +226,8 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(observed['status'], 'pass')
             self.assertEqual(ADDON_STATUS['probe'](lambda: False, Path('/dev/null'), root,
                                                    '/usr/bin/robopi-ws2812')['status'], 'fail')
+            self.assertEqual(ADDON_STATUS['probe'](lambda: False, root / 'missing', root,
+                                                   '')['status'], 'skip')
         calls = []
         def run(command, **kwargs):
             calls.append(command)
@@ -231,6 +235,35 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(ADDON_LED['probe']('red', run, lambda: True)['status'], 'needs_review')
         self.assertEqual(calls, [['robopi-ws2812', 'solid', '32', '0', '0']])
         self.assertEqual(ADDON_LED['probe']('invalid', run, lambda: True)['status'], 'fail')
+
+    def test_adb_status_skips_when_adbd_is_not_installed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / 'udc'
+            (root / 'udc0').mkdir(parents=True)
+            (root / 'udc0' / 'state').write_text('not attached\n')
+            run = lambda *args, **kwargs: subprocess.CompletedProcess(args, 1, '', '')
+            with patch.object(ADB['shutil'], 'which', return_value=None):
+                observed = ADB['probe'](root, run)
+            self.assertEqual(observed['status'], 'skip')
+            self.assertIn('not installed', observed['message'])
+
+    def test_gsusb_detection_is_dynamic(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.assertEqual(USB_DEVICE['probe'](root)['status'], 'skip')
+            device = root / '1-1'
+            device.mkdir()
+            (device / 'idVendor').write_text('1d50\n')
+            (device / 'idProduct').write_text('606f\n')
+            interface = root / '1-1:1.0'
+            interface.mkdir()
+            driver = root / 'gs_usb'
+            driver.mkdir()
+            (interface / 'driver').symlink_to(driver)
+            (interface / 'net' / 'can1').mkdir(parents=True)
+            observed = USB_DEVICE['probe'](root)
+            self.assertEqual(observed['status'], 'pass')
+            self.assertEqual(observed['details']['device_ids'], ['1d50:606f'])
 
     def test_sig_edge_restores_outputs_and_requires_a_new_rising_edge(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -341,7 +374,7 @@ class RunnerTests(unittest.TestCase):
     def test_hpm_terminal_plugin_uses_shared_durable_backend(self):
         from unittest.mock import patch
         with patch('loader.task_runtime.run_for_tui', return_value={'status': 'fail'}) as shared:
-            self.assertEqual('fail', HPM['probe']()['status'])
+            self.assertEqual('fail', HPM['probe']('robopi2')['status'])
             shared.assert_called_once_with('hpm-flash')
     def test_network_snapshot(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -369,7 +402,7 @@ class RunnerTests(unittest.TestCase):
             observed = USB['probe'](root)
             self.assertEqual(observed['details']['devices'][0]['usb_version'], '2.00')
             targeted = USB_DEVICE['probe'](root)
-            self.assertEqual(targeted['status'], 'fail')
+            self.assertEqual(targeted['status'], 'skip')
             driver = root / 'drivers' / 'gs_usb'
             driver.mkdir(parents=True)
             interface = root / '1-2:1.0'
@@ -417,16 +450,47 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(observed['status'], 'needs_review')
             self.assertIn('gpiochip0', observed['details']['snapshot'])
 
-    def test_factory_image_identity_checks_all_fields(self):
+    def test_factory_image_identity_is_board_dynamic(self):
         with tempfile.TemporaryDirectory() as temp:
-            release = Path(temp) / 'armbian-image-release'
-            release.write_text('\n'.join(f'{key}={value!r}'
-                                         for key, value in IMAGE['EXPECTED'].items()))
-            self.assertEqual(IMAGE['probe'](release)['status'], 'pass')
-            release.write_text(release.read_text().replace("'robopi2'", "'wrong'"))
-            observed = IMAGE['probe'](release)
+            root = Path(temp)
+            board = root / 'armbian-release'
+            board.write_text('BOARD=rdk-x5\n')
+            release = root / 'armbian-image-release'
+            fields = {
+                'BOARD': 'rdk-x5',
+                'VENDOR': 'roboparty-os',
+                'VERSION': '26.11.0-trunk-2.0.3',
+                'REVISION': '26.11.0-trunk-2.0.3',
+                'KERNEL_TARGET': 'vendor,vendor-rt',
+                'BUILD_REPOSITORY_COMMIT': '6a8af49d6',
+                'IMAGE_UUID': '8d79d315-a2a4-4968-aebf-6742aeae49e8',
+                'EXTENSIONS': '',
+            }
+            release.write_text('\n'.join(f'{key}={value}'
+                                         for key, value in fields.items()))
+            uname = lambda: SimpleNamespace(release='6.1.83-rt28-vendor-rt-hobot-x5')
+            self.assertEqual(IMAGE['probe'](release, board, root / 'model', None,
+                                            uname)['status'], 'pass')
+            release.write_text(release.read_text().replace('BOARD=rdk-x5', 'BOARD=robopi2'))
+            observed = IMAGE['probe'](release, board, root / 'model', None, uname)
             self.assertEqual(observed['status'], 'fail')
             self.assertIn('BOARD', observed['details']['mismatches'])
+            release.write_text(release.read_text().replace('BOARD=robopi2', 'BOARD=rdk-x5')
+                               .replace('KERNEL_TARGET=vendor,vendor-rt',
+                                        'KERNEL_TARGET=current'))
+            observed = IMAGE['probe'](release, board, root / 'model', None, uname)
+            self.assertEqual(observed['status'], 'fail')
+            self.assertIn('KERNEL_TARGET', observed['details']['mismatches'])
+            release.write_text(release.read_text().replace('KERNEL_TARGET=current',
+                                                           'KERNEL_TARGET=vendor,vendor-rt'))
+            manifest = root / 'factory-image.json'
+            manifest.write_text(json.dumps(fields))
+            self.assertEqual(IMAGE['probe'](release, board, root / 'model', manifest,
+                                            uname)['status'], 'pass')
+            manifest.write_text(json.dumps({**fields, 'VERSION': 'wrong'}))
+            observed = IMAGE['probe'](release, board, root / 'model', manifest, uname)
+            self.assertEqual(observed['status'], 'fail')
+            self.assertIn('VERSION', observed['details']['mismatches'])
 
     def test_bms_version_from_current_serial_service_and_can_frame(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -461,12 +525,14 @@ class RunnerTests(unittest.TestCase):
                                                               address ^ 1, node))
                 with self.assertRaisesRegex(ValueError, 'Only'):
                     plugin['hipnuc_query_register'](address ^ 1)
-        self.assertEqual(IMU_VERSION['probe'](lambda address: (172, node))['details']['version'],
+        self.assertEqual(IMU_VERSION['probe'](lambda address: (172, node), True)['details']['version'],
                          '1.7.2')
-        good = IMU_BITRATE['probe'](lambda address: (0, node), lambda: 1000000)
-        bad = IMU_BITRATE['probe'](lambda address: (2, node), lambda: 1000000)
+        good = IMU_BITRATE['probe'](lambda address: (0, node), lambda: 1000000, True)
+        bad = IMU_BITRATE['probe'](lambda address: (2, node), lambda: 1000000, True)
         self.assertEqual(good['status'], 'pass')
         self.assertEqual(bad['status'], 'fail')
+        self.assertEqual(IMU_VERSION['probe'](lambda address: (172, node), False)['status'], 'skip')
+        self.assertEqual(IMU_BITRATE['probe'](lambda address: (0, node), lambda: 1000000, False)['status'], 'skip')
 
     def test_imu_query_waits_for_data_before_sending(self):
         node = 8

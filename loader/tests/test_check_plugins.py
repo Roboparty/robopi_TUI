@@ -33,7 +33,7 @@ class PluginFormatTests(unittest.TestCase):
                         load_plugins(Path(temp))
 
     def test_repository_plugins_and_example(self):
-        self.assertEqual(len(check_plugins(ROOT / 'plugins')), 57)
+        self.assertEqual(len(check_plugins(ROOT / 'plugins')), 58)
         example = check_plugins(ROOT / 'loader' / 'examples')
         self.assertEqual([plugin['id'] for plugin in example], ['RP057'])
         self.assertEqual(example[0]['lifecycle'], 'testing')

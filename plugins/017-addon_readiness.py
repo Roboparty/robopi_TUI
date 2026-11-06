@@ -18,7 +18,7 @@ PLUGIN = {
     'clients': ['tui', 'csharp'],
     'author': 'wentywenty',
     'name': 'RoboPi addon readiness',
-    'version': '1.0',
+    'version': '1.1',
     'lifecycle': 'testing',
     'safety': 'passive',
     'category': 'Addon',
@@ -45,11 +45,15 @@ def probe(package=installed, device=Path('/dev/robopi-ws2812'),
     except (OSError, subprocess.SubprocessError) as exc:
         return result('error', f'Could not inspect robopi-addon: {exc}')
     command = shutil.which('robopi-ws2812') if command is None else command
-    details = {'package_installed': present, 'led_device': device.is_char_device(),
+    device_present = device.is_char_device()
+    details = {'package_installed': present, 'led_device': device_present,
                'led_command': command,
                'gpiochips': [str(gpio_root / name) for name in ('gpiochip0', 'gpiochip1')
                              if (gpio_root / name).is_char_device()]}
-    ready = (present and details['led_device'] and bool(command)
+    if not present and not device_present and not command:
+        return result('skip', 'Addon package and WS2812 hardware are not present on this board',
+                      details=details)
+    ready = (present and device_present and bool(command)
              and len(details['gpiochips']) == 2)
     return result('pass' if ready else 'fail',
                   'Addon prerequisites are present' if ready else 'Addon prerequisites are missing',

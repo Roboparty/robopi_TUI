@@ -16,12 +16,13 @@ import uuid
 
 import yaml
 
+from loader.board_context import board_id
 from loader.plugin_helpers import result
 
 
 PLUGIN = {
     'id': 'RP025',
-    'station': ['robopi2', 'rdkx5', 'opi5pro'],
+    'station': ['robopi2'],
     'clients': ['tui'],
     'author': 'wentywenty',
     'name': 'Deploy LRO motor parameters on can0-can3',
@@ -144,8 +145,12 @@ def deployment_lock():
 
 def probe(config=None, script=SCRIPT, journal_dir=JOURNAL_DIR, run=subprocess.run,
           check=check_link, which=shutil.which, is_root=None, robot='自定义路径', roots=None,
-          lock=deployment_lock):
+          lock=deployment_lock, board=None):
+    board = board_id()[0] if board is None else board
     details = {'config': str(config) if config else None, 'power_cycle_required': False}
+    if board != 'robopi2':
+        return result('skip', 'LRO parameter deployment on can0-can3 is only enabled on RoboPi2',
+                      details=details)
     try:
         if not (os.geteuid() == 0 if is_root is None else is_root()):
             raise ValueError('Run sudo robopi-tui to write motor parameters')

@@ -18,7 +18,7 @@ PLUGIN = {
     'clients': ['tui', 'csharp'],
     'author': 'wentywenty',
     'name': 'ADB gadget status',
-    'version': '1.0',
+    'version': '1.1',
     'lifecycle': 'testing',
     'kind': 'test',
     'category': 'Interfaces',
@@ -27,7 +27,7 @@ PLUGIN = {
     'timeout_s': 5,
     'documentation': {
         'title': 'ADB gadget 状态',
-        'criterion': '观察 adbd 和 UDC。',
+        'criterion': 'adbd 已安装并运行、UDC 已 configured；adbd 未安装时跳过。',
     },
 }
 
@@ -43,11 +43,15 @@ def probe(root=Path('/sys/class/udc'), run=subprocess.run):
         return result('error', str(exc))
     running = process.returncode == 0 and bool(process.stdout.strip())
     connected = 'configured' in states.values()
+    adbd = shutil.which('adbd')
+    details = {'udc_states': states, 'adbd': process.stdout.strip(),
+               'adbd_path': adbd, 'set_device': shutil.which('set_device.sh')}
+    if not running and not adbd:
+        return result('skip', 'adbd is not installed on this board', details=details)
     return result('pass' if running and connected else 'fail',
                   f'adbd {"running" if running else "not running"}; gadget '
                   f'{"configured" if connected else "not configured"}',
-                  details={'udc_states': states, 'adbd': process.stdout.strip(),
-                           'set_device': shutil.which('set_device.sh')})
+                  details=details)
 
 
 if __name__ == '__main__':

@@ -16,4 +16,4 @@ debian/tmp/
 *.deb
 
 # Local tests (not part of the package)
-tests/
+/tests/

@@ -9,6 +9,7 @@ import socket
 import struct
 import time
 
+from loader.board_context import has_can_interface
 from loader.plugin_helpers import result
 
 
@@ -101,7 +102,11 @@ def hipnuc_query_register(address):
     raise TimeoutError(f'HiPNUC node {node} did not answer read 0x{address:04X}')
 
 
-def probe(query=hipnuc_query_register):
+def probe(query=hipnuc_query_register, present=None):
+    present = has_can_interface(HIPNUC_INTERFACE) if present is None else present
+    present = present() if callable(present) else present
+    if not present:
+        return result('skip', f'{HIPNUC_INTERFACE} is not present; HiPNUC is not connected')
     try:
         raw, node = query(0x0078)
     except (OSError, ValueError, TimeoutError) as exc:

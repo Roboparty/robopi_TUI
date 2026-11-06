@@ -13,7 +13,7 @@
 
 ## 新增插件：可运行示例
 
-先确认编号未占用。`RP057` 保留给 machine-id 示例，`RP058` 已用于整机软件 SN；新增项从 `RP059` 起。可从 [057-example.py](../loader/examples/057-example.py) 复制并改成下一个空号，同时修改文件名与 `PLUGIN['id']`。新文件会被加载器自动发现，不用修改 TUI 菜单、加载器注册表或 Debian 安装清单。以下完整示例只读 `/etc/machine-id`，验证它是否为 32 位小写十六进制；它**不**证明设备 ID 唯一，判据中应明确这一边界。
+先确认编号未占用。`RP057` 保留给 machine-id 示例，`RP058` 已用于整机软件 SN；新增项从 `RP060` 起。可从 [057-example.py](../loader/examples/057-example.py) 复制并改成下一个空号，同时修改文件名与 `PLUGIN['id']`。新文件会被加载器自动发现，不用修改 TUI 菜单、加载器注册表或 Debian 安装清单。以下完整示例只读 `/etc/machine-id`，验证它是否为 32 位小写十六进制；它**不**证明设备 ID 唯一，判据中应明确这一边界。
 
 ```python
 #!/usr/bin/env python3

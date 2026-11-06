@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0
 # Copyright (C) 2026 wentywenty
 
-"""Check that the RoboPi USB-CAN device is bound to gs_usb."""
+"""Check for USB-CAN devices bound to gs_usb, without assuming a VID/PID."""
 
 import json
 from pathlib import Path
@@ -16,7 +16,7 @@ PLUGIN = {
     'clients': ['tui', 'csharp'],
     'author': 'wentywenty',
     'name': 'GSUSB USB-CAN interface',
-    'version': '1.1',
+    'version': '1.2',
     'lifecycle': 'testing',
     'safety': 'passive',
     'category': 'USB',
@@ -25,7 +25,7 @@ PLUGIN = {
     'timeout_s': 5,
     'documentation': {
         'title': 'GSUSB USB-CAN 接口',
-        'criterion': '`1209:2323` 绑定 `gs_usb` 且出现 CAN 网络接口；不验证 CAN 通信。',
+        'criterion': '任一 USB 设备绑定 `gs_usb` 且出现 CAN 网络接口；不绑定具体 VID/PID，不验证 CAN 通信。',
     },
 }
 
@@ -34,36 +34,45 @@ USB_ROOT = Path('/sys/bus/usb/devices')
 
 
 def probe(root=USB_ROOT):
-    matches = []
+    devices = []
     for vendor_file in sorted(root.glob('*/idVendor')):
         directory = vendor_file.parent
-        if (read_text(vendor_file).lower() != '1209'
-                or read_text(directory / 'idProduct').lower() != '2323'):
+        vendor_id = read_text(vendor_file).lower()
+        product_id = read_text(directory / 'idProduct').lower()
+        if not vendor_id or not product_id:
             continue
-        matches.append({'device': directory.name, 'vendor_id': read_text(vendor_file),
-                        'product_id': read_text(directory / 'idProduct'),
-                        'name': read_text(directory / 'product'),
-                        'serial': read_text(directory / 'serial'),
-                        'speed_mbps': read_text(directory / 'speed'),
-                        'usb_version': read_text(directory / 'version'),
-                        'device_version': read_text(directory / 'bcdDevice')})
-    if not matches:
-        return result('fail', 'GSUSB device 1209:2323 is not enumerated')
-    bound = []
-    for device in matches:
         interfaces = []
-        for interface in sorted(root.glob(device['device'] + ':*')):
+        for interface in sorted(root.glob(directory.name + ':*')):
             driver = interface / 'driver'
             if driver.is_symlink() and driver.resolve().name == 'gs_usb':
-                interfaces.append({'name': interface.name,
-                                   'can_interfaces': [path.name for path in
-                                                      sorted((interface / 'net').glob('can[0-9]*'))]})
-        bound.append({**device, 'gs_usb_interfaces': interfaces})
-    ready = [device for device in bound if any(interface['can_interfaces']
+                interfaces.append({
+                    'name': interface.name,
+                    'can_interfaces': [path.name for path in
+                                       sorted((interface / 'net').glob('can*'))],
+                })
+        if interfaces:
+            devices.append({
+                'device': directory.name,
+                'vendor_id': vendor_id,
+                'product_id': product_id,
+                'name': read_text(directory / 'product'),
+                'serial': read_text(directory / 'serial'),
+                'speed_mbps': read_text(directory / 'speed'),
+                'usb_version': read_text(directory / 'version'),
+                'device_version': read_text(directory / 'bcdDevice'),
+                'gs_usb_interfaces': interfaces,
+            })
+    if not devices:
+        return result('skip', 'No USB device bound to gs_usb is enumerated')
+    ready = [device for device in devices if any(interface['can_interfaces']
              for interface in device['gs_usb_interfaces'])]
+    identifiers = sorted({f"{device['vendor_id']}:{device['product_id']}"
+                          for device in devices})
     return result('pass' if ready else 'fail',
-                  f'{len(ready)} GSUSB device(s) bound with CAN interfaces',
-                  value=len(ready), unit='devices', details={'devices': bound})
+                  f'{len(ready)} USB-CAN device(s) bound to gs_usb'
+                  if ready else 'gs_usb is bound but no CAN interface was created',
+                  value=len(ready), unit='devices',
+                  details={'devices': devices, 'device_ids': identifiers})
 
 
 if __name__ == '__main__':
